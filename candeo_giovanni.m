@@ -35,13 +35,20 @@ xlabel('frequency [kHz]'); title('original audio signal in frequency')
 %by inspection on the spectrum
 %f1 = 13000 f2 = 33600
 
-%bit imprecise, should be looking f1 btw 10kHz and 27kHz instead of 24kHz
-[s1,pos1] = max(abs(Y(1:(Ny/4))));
-f1=fy(pos1);
+%index corresponding to the frequency
+i_10k = 10000/F;
+i_27k = 27000/F;
+
+%looking f1 btw 10kHz and 27kHz 
+[s1,pos1] = max(abs(Y(i_10k:i_27k)));
+f1=fy(pos1+i_10k);
 disp(['f1: ' num2str(f1)]);
-[s2,pos2] = max(abs(Y(Ny/4:Ny/2)));
-f2=fy(pos2+Ny/4);
+
+%looking f2 between 27kHz and 48kHZ
+[s2,pos2] = max(abs(Y(i_27k:Ny/2)));
+f2=fy(pos2+i_27k);
 disp(['f2: ' num2str(f2)]);
+
 
 
 %test123=fy(27000/F)
