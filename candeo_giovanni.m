@@ -21,7 +21,7 @@ Y = T*fft(y);           %fft
 F = 1/(Ny*T)
 fy = (0:Ny-1)*F;   %frequency samples
 %plot
-figure
+figure(1);
 subplot(2,1,1) 
 plot(ty,y); grid;
 xlabel('time[s]'); %xlim([0.1 0.2]);
@@ -76,5 +76,25 @@ legend('signal','Fp/2','f1','f2');
 disp(['A1: ',num2str(A1)]);
 disp(['A2: ',num2str(A2)]);
 
+%lets try to implement second order iir filters
+%to extract f1
+
+%normalized angular frequency theta
+theta = fy.*(2*pi*T);
+
+theta0 = 2*pi*T*f1;
+r = 1-pi/40;
+a1 = 2*r*cos(theta0); 
+a2 = -r^2;
+b0 = (1-r)*2*sin(theta0);
+
+H = b0./(1-a1*exp(-i*theta)-a2*exp(-i*2*theta));
+
+figure(2); 
+%just use fy/1e3 if we want to plot on freq
+plot(theta/pi,abs(H));
+grid on; axis([0 2 0 1]); xlabel('\theta/\pi'); ylabel('|H|'); 
+legend('\theta_0=2\piTf1, r=1-\pi/40','Location','North');
+hold on;
 
 
