@@ -121,5 +121,16 @@ subplot(2,2,4)
 plot(frequency_x/1e3,20*log10(abs(freq_carrier2)),'r');
 grid on; xlim([0 Fp/1e3]);xlabel('frequency [kHz]');
 
+%demodulation
+signal1 = x.*carrier1;
+SIGNAL1 = fft(signal1);
+signal2 = x.*carrier2;
+SIGNAL2 = fft(signal2);
+
+%fprintf('--> Press any key to listen \n\n');
+%pause;
+%sound(signal1, Fp);
+%pause(3);
+
 
 
