@@ -90,7 +90,7 @@ theta = frequency_x.*(2*pi*T);
 theta0(1) = 2*pi*T*f1;
 theta0(2) = 2*pi*T*f2;
 
-r = 1-pi/80;
+r = 1-pi/40;
 a1 = 2*r*cos(theta0); 
 a2(1) = -r^2;
 a2(2) = -r^2;
@@ -99,20 +99,27 @@ b0 = (1-r)*2*sin(theta0);
 %H = b0./(1-a1*exp(-1i*theta)-a2*exp(-1i*2*theta));
 [H1, w1] = freqz(b0(1),[1 -a1(1) -a2(1)], 0:Fp,'whole', Fp);
 [H2, w2] = freqz(b0(2),[1 -a1(2) -a2(2)], 0:Fp,'whole', Fp);
+%lets extract the carriers at frequency f1 and f2
+%filter frequency takes in input coefficients of a rational trans func
+carrier1 = filter(b0(1),[1 -a1(1) -a2(1)],x);
+carrier2 = filter(b0(2),[1 -a1(2) -a2(2)],x);
+freq_carrier1 = fft(carrier1);
+freq_carrier2 = fft(carrier2);
 
+%plot filters and carriers in freq domain
 figure(2); 
-%just use fy/1e3 if we want to plot on freq
+subplot(2,2,1);
 plot(w1/1e3,20*log10(abs(H1)));
-grid on; 
-xlim([0 Fp/1e3]);
-xlabel('frequency [kHz]'); 
-ylabel('|H|'); 
-hold on;
+grid on; xlim([0 Fp/1e3]);xlabel('frequency [kHz]'); ylabel('|H|'); 
+subplot(2,2,2);
 plot(w2/1e3,20*log10(abs(H2)),'r');
-hold off;
-
-%lets extract the carrier signal at frequency f1
-%carrierf1 = Y.*H; %doesnt work , memory error
+grid on; xlim([0 Fp/1e3]);xlabel('frequency [kHz]'); ylabel('|H|'); 
+subplot(2,2,3)
+plot(frequency_x/1e3,20*log10(abs(freq_carrier1)));
+grid on; xlim([0 Fp/1e3]);xlabel('frequency [kHz]');
+subplot(2,2,4)
+plot(frequency_x/1e3,20*log10(abs(freq_carrier2)),'r');
+grid on; xlim([0 Fp/1e3]);xlabel('frequency [kHz]');
 
 
 
