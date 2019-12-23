@@ -143,5 +143,33 @@ SIGNAL2 = fft(signal2);
 %sound(signal2(1:5*Fs), Fs);
 %pause(3);
 
+%
+%Filters to remove distorsion
+%
 
+f0 = 8000; %[Hz]
+% number of samples is N+1
+N = 100; % must be an even number
+% limit frequencies
+al = 0.05; % transition bandwidth in percentage
+fp = f0*(1-al); % pass band upper limit
+fs = f0*(1+al); % stop band lower limit
+err_lim = 0.0001; % -80 dB attenuation
+[NN,Fo,Ao,W] = firpmord([fp fs],[1 0],[1 1]*err_lim,Fs);
+disp(['firpmord suggests a filter of order ' num2str(NN) ...
+      ' for guaranteeing a ' num2str(20*log10(err_lim)) ' dB error'])
 
+% define filter
+h0 = firpm(N,Fo,Ao,W)/T;
+t = T*(-N/2:N/2);
+% behaviour in frequency obtained by use of function freqz
+[H0,ff] = freqz(h0,1,8*(N+1),Fs);
+H0 = T*H0; % normalization factor
+% show results
+figure(3)
+subplot(2,1,1)
+stem(t,h0); grid; title('FIR - remez approach - time domain')
+subplot(2,1,2)
+plot(ff,20*log10(abs(H0))); grid; xlim([0 Fs/2]); ylim([-80, 5]); 
+title('frequency domain')
+hold on; plot([1,1]*fp,ylim,'r--'); plot([1,1]*fs,ylim,'r--'); hold off;
