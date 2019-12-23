@@ -8,11 +8,11 @@ clc
 %read a WAVE file 
 %y array containing sound samples y(n), n=1:length(y)
 %Fp is the sampling frequency and should be 96 kHz
-[x, Fp] = audioread('candeo_giovanni.wav');
+[x,Fs] = audioread('candeo_giovanni.wav');
 
 %PART 1: compute the spectrum of the input signal
 %sampling period
-T = 1/Fp;
+T = 1/Fs;
 time_duration = T*size(x);
 %show the original signal in time and frequency
 Nx = length(x);         %length
@@ -32,16 +32,21 @@ title('Original audio signal in time');
 %plot signal in frequency domain
 subplot(2,1,2) % show frequency content in dB scale
 plot(frequency_x/1e3,20*log10(abs(X))); grid; 
-xlim([0 Fp/1e3]); ylim([-100 100]) 
+xlim([0 Fs/1e3]); ylim([-100 100]) 
 xlabel('frequency [kHz]'); title('original audio signal in frequency')
 hold on;
 %shows Fp/2 
-plot([1,1]*Fp/2e3,ylim,'r--');
+plot([1,1]*Fs/2e3,ylim,'r--');
 hold off;
+
+set(figure(1),'Units','Inches');
+pos = get(figure(1),'Position');
+set(figure(1),'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
+print(figure(1),'figure1','-dpdf','-r0')
 
 %fprintf('--> Press any key to listen to the frist 3 seconds of the track...  \n\n');
 %pause;
-%sound(y(1:3*Fp), Fp);
+%sound(x(1:3*Fs), Fs);
 %pause(3);
 
 %PART 3: find the frequencies f1 and f2 of the sinusoidal carriers
@@ -97,8 +102,8 @@ a2(2) = -r^2;
 b0 = (1-r)*2*sin(theta0);
 %manual
 %H = b0./(1-a1*exp(-1i*theta)-a2*exp(-1i*2*theta));
-[H1, w1] = freqz(b0(1),[1 -a1(1) -a2(1)], 0:Fp,'whole', Fp);
-[H2, w2] = freqz(b0(2),[1 -a1(2) -a2(2)], 0:Fp,'whole', Fp);
+[H1, w1] = freqz(b0(1),[1 -a1(1) -a2(1)], 0:Fs,'whole', Fs);
+[H2, w2] = freqz(b0(2),[1 -a1(2) -a2(2)], 0:Fs,'whole', Fs);
 %lets extract the carriers at frequency f1 and f2
 %filter frequency takes in input coefficients of a rational trans func
 carrier1 = filter(b0(1),[1 -a1(1) -a2(1)],x);
@@ -110,16 +115,17 @@ freq_carrier2 = fft(carrier2);
 figure(2); 
 subplot(2,2,1);
 plot(w1/1e3,20*log10(abs(H1)));
-grid on; xlim([0 Fp/1e3]);xlabel('frequency [kHz]'); ylabel('|H|'); 
+grid on; xlim([0 Fs/1e3]);xlabel('frequency [kHz]'); ylabel('|H|'); 
 subplot(2,2,2);
 plot(w2/1e3,20*log10(abs(H2)),'r');
-grid on; xlim([0 Fp/1e3]);xlabel('frequency [kHz]'); ylabel('|H|'); 
+grid on; xlim([0 Fs/1e3]);xlabel('frequency [kHz]'); ylabel('|H|'); 
 subplot(2,2,3)
 plot(frequency_x/1e3,20*log10(abs(freq_carrier1)));
-grid on; xlim([0 Fp/1e3]);xlabel('frequency [kHz]');
+grid on; xlim([0 Fs/1e3]);xlabel('frequency [kHz]');
 subplot(2,2,4)
 plot(frequency_x/1e3,20*log10(abs(freq_carrier2)),'r');
-grid on; xlim([0 Fp/1e3]);xlabel('frequency [kHz]');
+grid on; xlim([0 Fs/1e3]);xlabel('frequency [kHz]');
+
 
 %demodulation
 signal1 = x.*carrier1;
@@ -127,9 +133,14 @@ SIGNAL1 = fft(signal1);
 signal2 = x.*carrier2;
 SIGNAL2 = fft(signal2);
 
-%fprintf('--> Press any key to listen \n\n');
+%fprintf('--> Press any key to listen signal 1\n\n');
 %pause;
-%sound(signal1, Fp);
+%sound(signal1(1:5*Fs), Fs);
+%pause(3);
+
+%fprintf('--> Press any key to listen signal 2\n\n');
+%pause;
+%sound(signal2(1:5*Fs), Fs);
 %pause(3);
 
 
