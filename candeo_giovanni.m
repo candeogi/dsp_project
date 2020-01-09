@@ -147,6 +147,8 @@ SIGNAL2 = fft(signal2);
 %Filters to remove distorsion
 %
 
+%Minimax
+
 f0 = 8000; %[Hz]
 % number of samples is N+1
 N = 100; % must be an even number
@@ -173,3 +175,21 @@ subplot(2,1,2)
 plot(ff,20*log10(abs(H0))); grid; xlim([0 Fs/2]); ylim([-80, 5]); 
 title('frequency domain')
 hold on; plot([1,1]*fp,ylim,'r--'); plot([1,1]*fs,ylim,'r--'); hold off;
+
+%IIR notch filter f0 = 20Hz
+
+f0_n = 0;
+teta0_n = f0_n*2*pi*T; %will be 0 as well obv.
+f3db_n = 20; %[Hz] i want a hp filter at 20 Hz
+teta3db_n = f3db_n*2*pi*T; %teta 3db 
+r_n = 1 - teta3db_n;
+
+%coefficients
+b = [1 -2 1]; %f0 is 0 so...
+a1 = 2*r_n; a2= r_n*r_n;
+a = [1 -a1 -a2]; %from formula 
+[H_notch, w_notch] = freqz(b,a,2048,'whole',Fs); %2048 arbitrary i guess
+figure(4)
+plot(w_notch/1000, 20.*log10(abs(H_notch))); grid; xlim([0 Fs/2]);
+xlim([0 Fs/(2*1e3)]);
+title('notch filter');
