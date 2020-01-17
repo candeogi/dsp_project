@@ -8,7 +8,7 @@ clc
 %read a WAVE file 
 %y array containing sound samples y(n), n=1:length(y)
 %Fp is the sampling frequency and should be 96 kHz
-[x,Fs] = audioread('candeo_giovanni.wav');
+[x,Fs] = audioread('signal_033.wav');
 
 %PART 1: compute the spectrum of the input signal
 %sampling period
@@ -95,7 +95,11 @@ theta = frequency_x.*(2*pi*T);
 theta0(1) = 2*pi*T*f1;
 theta0(2) = 2*pi*T*f2;
 
-r = 1-pi/40;
+%suppose DELTA f3db = 10Hz
+%very narrow bandwitdh
+DELTA_teta3db = 2*pi*10/Fs;
+delta = DELTA_teta3db/2;
+r = 1-delta;
 a1 = 2*r*cos(theta0); 
 a2(1) = -r^2;
 a2(2) = -r^2;
@@ -203,22 +207,19 @@ title('magnitude of elliptic low pass filter');
 
 %IIR notch filter f0 = 20Hz
 %high pass
-
-f0_n = 0;
-teta0_n = f0_n*2*pi*T; %will be 0 as well obv.
-f3db_n = 20; %[Hz] i want a hp filter at 20 Hz
-teta3db_n = f3db_n*2*pi*T; %teta 3db 
-r_n = 1 - teta3db_n;
+f3db_hp = 20; %[Hz] i want a hp filter at 20 Hz
+DELTA3db_hp = 2*pi*f3db_hp/Fs; %DELTA 3db 
+r_hp = 1 - DELTA3db_hp/2;
 
 %lets find the coefficients
 b_hp = [1 -2 1]; %f0 is 0 so...
-a1 = 2*r_n; a2= r_n*r_n;
-a_hp = [1 -a1 -a2]; %from formula 
-[H_notch, w_notch] = freqz(b_hp,a_hp,2048,'whole',Fs); %2048 arbitrary i guess
+a1 = 2*r_hp; a2= r_hp*r_hp;
+a_hp = [1 -a1 a2]; %from formula 
+[H_hp, w_hp] = freqz(b_hp,a_hp,2048,'whole',Fs); %2048 arbitrary i guess
 
 figure(5)
 subplot(2,1,1);
-plot(w_notch/1e3, 20.*log10(abs(H_notch))); 
+plot(w_hp/1e3, 20.*log10(abs(H_hp))); 
 grid on; 
 xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]');
 ylabel('|H|');
