@@ -2,56 +2,48 @@ clearvars
 close all
 clc
 
-% DSP PROJECT by GIOVANNI CANDEO
+% DSP PROJECT by Candeo Giovanni
+% Student ID 1206150, Audio Sample n.033.
 
-%PART 0: read the file containing the input signal
-%read a WAVE file 
+%read the file containing the input signal
 %y array containing sound samples y(n), n=1:length(y)
 %Fp is the sampling frequency and should be 96 kHz
 [x,Fs] = audioread('signal_033.wav');
 
-%PART 1: compute the spectrum of the input signal
-%sampling period
-T = 1/Fs;
+%compute the spectrum of the input signal
+T = 1/Fs; %sampling period
 time_duration = T*size(x);
+
 %show the original signal in time and frequency
-Nx = length(x);         %length
-time_x = T*(0:Nx-1);        %time samples
-%TODO check why not T*fft(x)
-X = fft(x);           %fft
+Nx = length(x);%length
+time_x = T*(0:Nx-1);%time samples
+X = fft(x);       
 F = 1/(Nx*T);
 frequency_x = (0:Nx-1)*F;   %frequency samples
 
 %plot signal in time domain
 figure(1);
-subplot(2,1,1) 
+subplot(3,1,1) 
 plot(time_x,x); grid;
-xlabel('time[s]'); %xlim([0.1 0.2]);
+xlabel('time[s]');
 title('Original audio signal in time');
 
+subplot(3,1,2)
+plot(frequency_x/1e3,abs(X)); grid; 
+xlim([0 (Fs/2)/1e3]); 
+xlabel('frequency [kHz]'); 
+title('original audio signal in frequency')
+
 %plot signal in frequency domain
-subplot(2,1,2) % show frequency content in dB scale
+subplot(3,1,3) % show frequency content in dB scale
 plot(frequency_x/1e3,20*log10(abs(X))); grid; 
 xlim([0 (Fs/2)/1e3]); ylim([-100 100]) 
-xlabel('frequency [kHz]'); title('original audio signal in frequency')
-hold on;
-%shows Fp/2 
-plot([1,1]*Fs/2e3,ylim,'r--');
-hold off;
+xlabel('frequency [kHz]'); 
+ylabel('db');
+title('original audio signal in frequency (db)')
 
-set(figure(1),'Units','Inches');
-pos = get(figure(1),'Position');
-set(figure(1),'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-print(figure(1),'figure1','-dpdf','-r0')
-
-%fprintf('--> Press any key to listen to the frist 3 seconds of the track...  \n\n');
-%pause;
-%sound(x(1:3*Fs), Fs);
-%pause(3);
 
 %PART 3: find the frequencies f1 and f2 of the sinusoidal carriers
-%by inspection on the spectrum
-%f1 = 13000 f2 = 33600
 
 %{
 f1 and f2 are the frequencies of the two sinusoidal carriers, 
@@ -68,25 +60,24 @@ i_27k = 27000/F;
 
 %looking f1 btw 10kHz and 27kHz 
 [A1,pos1] = max(abs(X(i_10k:i_27k)));
+A1 = A1/(Nx/2);
 f1=frequency_x(pos1+i_10k);
-disp(['f1: ' num2str(f1)]);
+%disp(['f1: ' num2str(f1)]);
 
 %looking f2 between 27kHz and 48kHZs
 [A2,pos2] = max(abs(X(i_27k:Nx/2)));
+A2 = A2/(Nx/2);
 f2=frequency_x(pos2+i_27k);
-disp(['f2: ' num2str(f2)]);
+%disp(['f2: ' num2str(f2)]);
 
 hold on;
 %shows f1 on the figure
 plot([1,1]*f1/1e3,ylim,'g--');
 %shows f2 on the figure
-plot([1,1]*f2/1e3,ylim,'b--');
+plot([1,1]*f2/1e3,ylim,'r--');
 hold off;
-legend('signal','Fp/2','f1','f2');
+legend('signal','f1','f2');
 
-%A1,A2 are the amplitudes of the carriers
-disp(['A1: ',num2str(A1)]);
-disp(['A2: ',num2str(A2)]);
 
 %lets find the coefficients to implement second order iir bandpass filters
 
@@ -189,16 +180,10 @@ Rp = 0.1; %passband ripple
 Rs = 80; %stopband attenuation
 Wp = f0_lp/ (Fs/2); %passband edge frequency
 
-%test
-%Ws = 8800/ (Fs/2); 
-%[N_test,Wp] = ellipord(Wp,Ws,Rp,Rs);
-%disp(['Order N = ' num2str(N_test)])
-
 [b_lp,a_lp] = ellip(N_ellip,Rp,Rs,Wp,'low');
 [H_lp, w_lp] = freqz(b_lp,a_lp,f0_lp,Fs);
 
 figure(4)
-subplot(2,1,1);
 plot(w_lp/1e3,20.*log10(abs(H_lp)));
 grid on; 
 xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]'); 
@@ -215,15 +200,15 @@ r_hp = 1 - DELTA3db_hp/2;
 b_hp = [1 -2 1]; %f0 is 0 so...
 a1 = 2*r_hp; a2= r_hp*r_hp;
 a_hp = [1 -a1 a2]; %from formula 
-[H_hp, w_hp] = freqz(b_hp,a_hp,2048,'whole',Fs); %2048 arbitrary i guess
+[H_hp, w_hp] = freqz(b_hp,a_hp,2048,'whole',Fs); 
 
 figure(5)
-subplot(2,1,1);
 plot(w_hp/1e3, 20.*log10(abs(H_hp))); 
 grid on; 
 xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]');
 ylabel('|H|');
 title('magnitude of second order IIR notch filter');
+
 
 %filter the signals to remove distortions
 %signal1
@@ -235,36 +220,38 @@ SIGNAL1_clean = fft(signal1_clean(1:Nx));
 %signal2
 signal2_hp = filter(a_hp,b_hp,signal2);
 signal2_clean = filter(a_lp,b_lp,signal2_hp);
-signal2_clean = signal2./A1;
+signal2_clean = signal2./A2;
 SIGNAL2_clean = fft(signal2_clean(1:Nx));
 
-%audiowrite('candeo_giovanni.wav',[signal1_clean,signal2_clean],Fs);
+%sound(signal1_clean,Fs);
+%sound(signal2_clean,Fs);
+audiowrite('candeo_giovanni.wav',[signal1_clean,signal2_clean],Fs);
 
 %plots
 figure(6)
 subplot(3,2,1);
-plot(time_x,signal1);
+plot(time_x,signal1);grid on;
 xlabel('time[s]'); 
 title('signal 1 in time');
 subplot(3,2,3);
-plot(time_x,signal1_clean);
+plot(time_x,signal1_clean);grid on;
 xlabel('time[s]'); 
 title('clean signal 1 in time');
 subplot(3,2,5);
-plot(frequency_x/1e3,20*log10(abs(SIGNAL1_clean)));
+plot(frequency_x/1e3,20*log10(abs(SIGNAL1_clean))); grid on;
 xlim([0 (Fs/2)/1e3]); xlabel('frequency [KHz]');
 title('magnitude of signal1 clean');
 
 subplot(3,2,2);
-plot(time_x,signal2);
+plot(time_x,signal2);grid on;
 xlabel('time[s]'); 
 title('signal 2 in time');
 subplot(3,2,4);
-plot(time_x,signal2_clean);
+plot(time_x,signal2_clean);grid on;
 xlabel('time[s]'); 
 title('clean signal 2 in time');
 subplot(3,2,6);
-plot(frequency_x/1e3,20*log10(abs(SIGNAL2_clean)));
+plot(frequency_x/1e3,20*log10(abs(SIGNAL2_clean)));grid on;
 xlim([0 (Fs/2)/1e3]); xlabel('frequency [KHz]');
 title('magnitude of signal2 clean');
 
