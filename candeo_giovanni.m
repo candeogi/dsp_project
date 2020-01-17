@@ -32,7 +32,7 @@ title('Original audio signal in time');
 %plot signal in frequency domain
 subplot(2,1,2) % show frequency content in dB scale
 plot(frequency_x/1e3,20*log10(abs(X))); grid; 
-xlim([0 Fs/1e3]); ylim([-100 100]) 
+xlim([0 (Fs/2)/1e3]); ylim([-100 100]) 
 xlabel('frequency [kHz]'); title('original audio signal in frequency')
 hold on;
 %shows Fp/2 
@@ -115,16 +115,16 @@ freq_carrier2 = fft(carrier2);
 figure(2); 
 subplot(2,2,1);
 plot(w1/1e3,20*log10(abs(H1)));
-grid on; xlim([0 Fs/1e3]);xlabel('frequency [kHz]'); ylabel('|H|'); 
+grid on; xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]'); ylabel('|H|'); 
 subplot(2,2,2);
 plot(w2/1e3,20*log10(abs(H2)),'r');
-grid on; xlim([0 Fs/1e3]);xlabel('frequency [kHz]'); ylabel('|H|'); 
+grid on; xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]'); ylabel('|H|'); 
 subplot(2,2,3)
 plot(frequency_x/1e3,20*log10(abs(freq_carrier1)));
-grid on; xlim([0 Fs/1e3]);xlabel('frequency [kHz]');
+grid on; xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]');
 subplot(2,2,4)
 plot(frequency_x/1e3,20*log10(abs(freq_carrier2)),'r');
-grid on; xlim([0 Fs/1e3]);xlabel('frequency [kHz]');
+grid on; xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]');
 
 
 %demodulation
@@ -145,17 +145,18 @@ SIGNAL2 = fft(signal2);
 
 %
 %Filters to remove distorsion
-%
+%[20-8000 Hz]
 
-%Minimax
+f0_lp = 8000; %[Hz] 
 
-f0 = 8000; %[Hz]
+%{
+Minimax
 % number of samples is N+1
 N = 100; % must be an even number
 % limit frequencies
 al = 0.05; % transition bandwidth in percentage
-fp = f0*(1-al); % pass band upper limit
-fs = f0*(1+al); % stop band lower limit
+fp = f0_lp*(1-al); % pass band upper limit
+fs = f0_lp*(1+al); % stop band lower limit
 err_lim = 0.0001; % -80 dB attenuation
 [NN,Fo,Ao,W] = firpmord([fp fs],[1 0],[1 1]*err_lim,Fs);
 disp(['firpmord suggests a filter of order ' num2str(NN) ...
@@ -175,8 +176,33 @@ subplot(2,1,2)
 plot(ff,20*log10(abs(H0))); grid; xlim([0 Fs/2]); ylim([-80, 5]); 
 title('frequency domain')
 hold on; plot([1,1]*fp,ylim,'r--'); plot([1,1]*fs,ylim,'r--'); hold off;
+%}
+
+%IIR low pass using elliptic
+%we want stop band attenuation of 80db
+N_ellip = 10;
+Rp = 0.1; %passband ripple
+Rs = 80; %stopband attenuation
+Wp = f0_lp/ (Fs/2); %passband edge frequency
+
+%test
+%Ws = 8800/ (Fs/2); 
+%[N_test,Wp] = ellipord(Wp,Ws,Rp,Rs);
+%disp(['Order N = ' num2str(N_test)])
+
+[b_lp,a_lp] = ellip(N_ellip,Rp,Rs,Wp,'low');
+[H_lp, w_lp] = freqz(b_lp,a_lp,f0_lp,Fs);
+
+figure(4)
+subplot(2,1,1);
+plot(w_lp/1e3,20.*log10(abs(H_lp)));
+grid on; 
+xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]'); 
+ylabel('|H|'); 
+title('magnitude of elliptic low pass filter');
 
 %IIR notch filter f0 = 20Hz
+%high pass
 
 f0_n = 0;
 teta0_n = f0_n*2*pi*T; %will be 0 as well obv.
@@ -184,12 +210,60 @@ f3db_n = 20; %[Hz] i want a hp filter at 20 Hz
 teta3db_n = f3db_n*2*pi*T; %teta 3db 
 r_n = 1 - teta3db_n;
 
-%coefficients
-b = [1 -2 1]; %f0 is 0 so...
+%lets find the coefficients
+b_hp = [1 -2 1]; %f0 is 0 so...
 a1 = 2*r_n; a2= r_n*r_n;
-a = [1 -a1 -a2]; %from formula 
-[H_notch, w_notch] = freqz(b,a,2048,'whole',Fs); %2048 arbitrary i guess
-figure(4)
-plot(w_notch/1000, 20.*log10(abs(H_notch))); grid; xlim([0 Fs/2]);
-xlim([0 Fs/(2*1e3)]);
-title('notch filter');
+a_hp = [1 -a1 -a2]; %from formula 
+[H_notch, w_notch] = freqz(b_hp,a_hp,2048,'whole',Fs); %2048 arbitrary i guess
+
+figure(5)
+subplot(2,1,1);
+plot(w_notch/1e3, 20.*log10(abs(H_notch))); 
+grid on; 
+xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]');
+ylabel('|H|');
+title('magnitude of second order IIR notch filter');
+
+%filter the signals to remove distortions
+%signal1
+signal1_hp = filter(a_hp,b_hp,signal1);
+signal1_clean = filter(a_lp,b_lp,signal1_hp);
+signal1_clean = signal1./A1;
+SIGNAL1_clean = fft(signal1_clean(1:Nx));
+
+%signal2
+signal2_hp = filter(a_hp,b_hp,signal2);
+signal2_clean = filter(a_lp,b_lp,signal2_hp);
+signal2_clean = signal2./A1;
+SIGNAL2_clean = fft(signal2_clean(1:Nx));
+
+%audiowrite('candeo_giovanni.wav',[signal1_clean,signal2_clean],Fs);
+
+%plots
+figure(6)
+subplot(3,2,1);
+plot(time_x,signal1);
+xlabel('time[s]'); 
+title('signal 1 in time');
+subplot(3,2,3);
+plot(time_x,signal1_clean);
+xlabel('time[s]'); 
+title('clean signal 1 in time');
+subplot(3,2,5);
+plot(frequency_x/1e3,20*log10(abs(SIGNAL1_clean)));
+xlim([0 (Fs/2)/1e3]); xlabel('frequency [KHz]');
+title('magnitude of signal1 clean');
+
+subplot(3,2,2);
+plot(time_x,signal2);
+xlabel('time[s]'); 
+title('signal 2 in time');
+subplot(3,2,4);
+plot(time_x,signal2_clean);
+xlabel('time[s]'); 
+title('clean signal 2 in time');
+subplot(3,2,6);
+plot(frequency_x/1e3,20*log10(abs(SIGNAL2_clean)));
+xlim([0 (Fs/2)/1e3]); xlabel('frequency [KHz]');
+title('magnitude of signal2 clean');
+
