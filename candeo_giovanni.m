@@ -21,37 +21,36 @@ X = fft(x);
 F = 1/(Nx*T);
 frequency_x = (0:Nx-1)*F;   %frequency samples
 
-%plot signal in time domain
+%plot signal in time and frequency domain
 figure(1);
 subplot(3,1,1) 
 plot(time_x,x); grid;
-xlabel('time[s]');
+xlabel('time[s]');ylabel('x(nT)');
 title('Original audio signal in time');
 
 subplot(3,1,2)
 plot(frequency_x/1e3,abs(X)); grid; 
 xlim([0 (Fs/2)/1e3]); 
-xlabel('frequency [kHz]'); 
+xlabel('frequency [kHz]');ylabel('|X(f)|');
 title('original audio signal in frequency')
 
 %plot signal in frequency domain
 subplot(3,1,3) % show frequency content in dB scale
 plot(frequency_x/1e3,20*log10(abs(X))); grid; 
 xlim([0 (Fs/2)/1e3]); ylim([-100 100]) 
-xlabel('frequency [kHz]'); 
+xlabel('frequency [kHz]'); ylabel('|X(f)|');
 ylabel('db');
 title('original audio signal in frequency (db)')
 
 
-%PART 3: find the frequencies f1 and f2 of the sinusoidal carriers
+%find the frequencies f1 and f2 of the sinusoidal carriers
 
 %{
 f1 and f2 are the frequencies of the two sinusoidal carriers, 
 where 10000 Hz <= f1 < f2 <= 38000 Hz     
 (frequencies f1 and f2 are chosen such that there is no frequency overlap 
-btwn the 2 modulated components, and specifically so that f2 - f1 >= 17kHz),
-and A1 and A2 are the amplitudes of the carriers. 
-f2 >=
+between the 2 modulated components, and specifically so that f2 - f1 >= 17kHz),
+A1 and A2 are the amplitudes of the carriers. 
 %}
 
 %index corresponding to the frequency
@@ -95,8 +94,7 @@ a1 = 2*r*cos(theta0);
 a2(1) = -r^2;
 a2(2) = -r^2;
 b0 = (1-r)*2*sin(theta0);
-%manual
-%H = b0./(1-a1*exp(-1i*theta)-a2*exp(-1i*2*theta));
+%H = b0./(1-a1*exp(-1i*theta)-a2*exp(-1i*2*theta)); %manual
 [H1, w1] = freqz(b0(1),[1 -a1(1) -a2(1)], 0:Fs,'whole', Fs);
 [H2, w2] = freqz(b0(2),[1 -a1(2) -a2(2)], 0:Fs,'whole', Fs);
 %lets extract the carriers at frequency f1 and f2
@@ -110,17 +108,20 @@ freq_carrier2 = fft(carrier2);
 figure(2); 
 subplot(2,2,1);
 plot(w1/1e3,20*log10(abs(H1)));
-grid on; xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]'); ylabel('|H|'); 
+grid on; xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]');
+title('magnitude (db) bp filter at f1');
 subplot(2,2,2);
 plot(w2/1e3,20*log10(abs(H2)),'r');
-grid on; xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]'); ylabel('|H|'); 
+grid on; xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]');
+title('magnitude (db) bp filter at f2');
 subplot(2,2,3)
 plot(frequency_x/1e3,20*log10(abs(freq_carrier1)));
 grid on; xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]');
+title('magnitude (db) of the first carrier');
 subplot(2,2,4)
 plot(frequency_x/1e3,20*log10(abs(freq_carrier2)),'r');
-grid on; xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]');
-
+grid on; xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]'); 
+title('magnitude (db) of the second carrier');
 
 %demodulation
 signal1 = x.*carrier1;
@@ -183,12 +184,20 @@ Wp = f0_lp/ (Fs/2); %passband edge frequency
 [b_lp,a_lp] = ellip(N_ellip,Rp,Rs,Wp,'low');
 [H_lp, w_lp] = freqz(b_lp,a_lp,f0_lp,Fs);
 
-figure(4)
+figure(3)
+subplot(2,1,1);
 plot(w_lp/1e3,20.*log10(abs(H_lp)));
 grid on; 
 xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]'); 
 ylabel('|H|'); 
-title('magnitude of elliptic low pass filter');
+title('magnitude (db) of elliptic low pass filter');
+subplot(2,1,2);
+plot(w_lp/1e3, angle(H_lp)*360);
+grid on;
+xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]');
+ylabel('angle(H)');
+title('angle of elliptic low pass filter');
+
 
 %IIR notch filter f0 = 20Hz
 %high pass
@@ -202,13 +211,19 @@ a1 = 2*r_hp; a2= r_hp*r_hp;
 a_hp = [1 -a1 a2]; %from formula 
 [H_hp, w_hp] = freqz(b_hp,a_hp,2048,'whole',Fs); 
 
-figure(5)
+figure(4)
+subplot(2,1,1);
 plot(w_hp/1e3, 20.*log10(abs(H_hp))); 
 grid on; 
-xlim([0 (Fs/2)/1e3]);xlabel('frequency [kHz]');
+xlim([0 (Fs)/1e3]);xlabel('frequency [kHz]');
 ylabel('|H|');
-title('magnitude of second order IIR notch filter');
-
+title('magnitude (db) of second order IIR notch filter');
+subplot(2,1,2);
+plot(w_hp/1e3, angle(H_hp)*360);
+grid on;
+xlim([0 (Fs)/1e3]);xlabel('frequency [kHz]');
+ylabel('angle(H)');
+title('angle of second order IIR notch filter');
 
 %filter the signals to remove distortions
 %signal1
@@ -228,7 +243,7 @@ SIGNAL2_clean = fft(signal2_clean(1:Nx));
 audiowrite('candeo_giovanni.wav',[signal1_clean,signal2_clean],Fs);
 
 %plots
-figure(6)
+figure(5)
 subplot(3,2,1);
 plot(time_x,signal1);grid on;
 xlabel('time[s]'); 
@@ -254,4 +269,12 @@ subplot(3,2,6);
 plot(frequency_x/1e3,20*log10(abs(SIGNAL2_clean)));grid on;
 xlim([0 (Fs/2)/1e3]); xlabel('frequency [KHz]');
 title('magnitude of signal2 clean');
+
+%prints
+%print(figure(1),'-bestfit','figure1','-dpdf');
+%print(figure(2),'-bestfit','figure2','-dpdf');
+%print(figure(3),'-bestfit','figure3','-dpdf');
+%print(figure(4),'-bestfit','figure4','-dpdf');
+%print(figure(5),'-bestfit','figure5','-dpdf');
+
 
