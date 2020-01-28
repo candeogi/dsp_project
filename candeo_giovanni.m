@@ -209,7 +209,7 @@ r_hp = 1 - DELTA3db_hp/2;
 b_hp = [1 -2 1]; %f0 is 0 so...
 a1 = 2*r_hp; a2= r_hp*r_hp;
 a_hp = [1 -a1 a2]; %from formula 
-[H_hp, w_hp] = freqz(b_hp,a_hp,2048,'whole',Fs); 
+[H_hp, w_hp] = freqz(b_hp,a_hp,2048,Fs); 
 
 figure(4)
 subplot(2,1,1);
@@ -227,15 +227,15 @@ title('angle of second order IIR notch filter');
 
 %filter the signals to remove distortions
 %signal1
-signal1_hp = filter(a_hp,b_hp,signal1);
-signal1_clean = filter(a_lp,b_lp,signal1_hp);
-signal1_clean = signal1./A1;
+signal1_lp = filter(b_lp,a_lp,signal1);
+signal1_clean = filter(b_hp,a_hp,signal1_lp);
+signal1_clean = signal1_clean ./ A1;
 SIGNAL1_clean = fft(signal1_clean(1:Nx));
 
 %signal2
-signal2_hp = filter(a_hp,b_hp,signal2);
-signal2_clean = filter(a_lp,b_lp,signal2_hp);
-signal2_clean = signal2./A2;
+signal2_lp = filter(b_lp,a_lp,signal2);
+signal2_clean = filter(b_hp,a_hp,signal2_lp);
+signal2_clean = signal2_clean ./ A2;
 SIGNAL2_clean = fft(signal2_clean(1:Nx));
 
 %sound(signal1_clean,Fs);
